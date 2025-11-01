@@ -12,13 +12,19 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class FleetManager {
+
+    // Using ArrayList for dynamic fleet storage
     private List<Vehicle> fleet = new ArrayList<Vehicle>();
+
+    // Using HashSet to ensure unique model names
+    private final Set<String> distinctModels = new HashSet<>();
 
     public void addVehicle(Vehicle v) throws InvalidOperationException {
         Objects.requireNonNull(v, "Vehicle cannot be null");
         Optional<Vehicle> dup = fleet.stream().filter(x -> x.getId().equals(v.getId())).findAny();
         if (dup.isPresent()) throw new InvalidOperationException("Duplicate vehicle ID: " + v.getId());
         fleet.add(v);
+        distinctModels.add(v.getModel());
     }
 
     public void removeVehicle(String id) throws InvalidOperationException {
@@ -186,7 +192,10 @@ public class FleetManager {
                 String[] parts = line.split(",", -1);
                 try {
                     Vehicle v = VehicleFactory.createVehicle(parts);
-                    if (v != null) loaded.add(v);
+                    if (v != null) {
+                        loaded.add(v);
+                        distinctModels.add(v.getModel());
+                    }
                 } catch (Exception e) {
                     System.err.println("Error parsing line " + lineNo + ": " + e.getMessage());
                 }
@@ -201,6 +210,48 @@ public class FleetManager {
 
     public List<Vehicle> listAll() {
         return new ArrayList<>(fleet);
+    }
+
+    // new methods for data analysis
+
+    public List<Vehicle> getFleetSortedBySpeed() {
+        List<Vehicle> sorted = new ArrayList<>(fleet);
+        sorted.sort(Comparator.comparingDouble(this::safeGetMaxSpeed));
+        return sorted;
+    }
+
+    public List<Vehicle> getFleetSortedByModel() {
+        List<Vehicle> sorted = new ArrayList<>(fleet);
+        sorted.sort(Comparator.comparing(Vehicle::getModel, String.CASE_INSENSITIVE_ORDER));
+        return sorted;
+    }
+
+    public List<Vehicle> getFleetSortedByEfficiency() {
+        List<Vehicle> sorted = new ArrayList<>(fleet);
+        sorted.sort(Comparator.comparingDouble(Vehicle::calculateFuelEfficiency));
+        return sorted;
+    }
+
+    public String getFastestAndSlowestSummary() {
+        if (fleet.isEmpty()) return "Fleet is empty.";
+        Vehicle fastest = Collections.max(fleet, Comparator.comparingDouble(this::safeGetMaxSpeed));
+        Vehicle slowest = Collections.min(fleet, Comparator.comparingDouble(this::safeGetMaxSpeed));
+        return String.format("""
+                Fastest Vehicle:
+                  ID: %s | Model: %s | Speed: %.1f km/h
+                Slowest Vehicle:
+                  ID: %s | Model: %s | Speed: %.1f km/h
+                """,
+                fastest.getId(), fastest.getModel(), safeGetMaxSpeed(fastest),
+                slowest.getId(), slowest.getModel(), safeGetMaxSpeed(slowest));
+    }
+
+    private double safeGetMaxSpeed(Vehicle v) {
+        try {
+            return (double) v.getClass().getMethod("getMaxSpeed").invoke(v);
+        } catch (Exception e) {
+            return 0.0;
+        }
     }
 
     private static double getMileageSafe(Vehicle v) {

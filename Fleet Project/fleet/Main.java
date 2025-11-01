@@ -11,6 +11,7 @@ public class Main {
     private static final Scanner in = new Scanner(System.in);
 
     public static void main(String[] args) {
+        //hardcoding a few Vehicles in the fleet.
         try {
             manager.addVehicle(new Car("C001","Honda City",180.0,0.0,4));
             manager.addVehicle(new Truck("T001","Mahindra",90.0,0.0,6));
@@ -36,7 +37,12 @@ public class Main {
                 case "8": loadFleetCLI(); break;
                 case "9": searchByTypeCLI(); break;
                 case "10": listMaintenanceCLI(); break;
-                case "11": running = false; break;
+                case "11": showFastestSlowestCLI(); break;
+                case "12": sortBySpeedCLI(); break;
+                case "13": sortByModelCLI(); break;
+                case "14": sortByEfficiencyCLI(); break;
+                case "15": running = false; break;
+
                 default: System.out.println("Invalid Command. Please try again.");
             }
         }
@@ -55,7 +61,11 @@ public class Main {
         System.out.println("8. Load Fleet");
         System.out.println("9. Search by Type");
         System.out.println("10. List Vehicles Needing Maintenance");
-        System.out.println("11. Exit");
+        System.out.println("11. Show Fastest and Slowest Vehicle");
+        System.out.println("12. Sort Fleet by Maximum Speed");
+        System.out.println("13. Sort Fleet by Model Name");
+        System.out.println("14. Sort Fleet by Efficiency");
+        System.out.println("15. Exit");
         System.out.print("Choose: ");
     }
 
@@ -184,6 +194,41 @@ public class Main {
         else {
             System.out.println("Vehicles needing maintenance:");
             needs.forEach(v -> System.out.println("  " + v.getId() + " (" + v.getClass().getSimpleName() + ")"));
+        }
+    }
+
+    // new methods for data analysis
+
+    private static void showFastestSlowestCLI() {
+        System.out.println(manager.getFastestAndSlowestSummary());
+    }
+
+    private static void sortBySpeedCLI() {
+        System.out.println("---- Fleet Sorted by Maximum Speed ----");
+        for (Vehicle v : manager.getFleetSortedBySpeed()) {
+            System.out.printf("%s | %s | %.1f km/h%n", v.getId(), v.getModel(), getSpeedSafe(v));
+        }
+    }
+
+    private static void sortByModelCLI() {
+        System.out.println("---- Fleet Sorted by Model Name ----");
+        for (Vehicle v : manager.getFleetSortedByModel()) {
+            System.out.printf("%s | %s | %.1f km/h%n", v.getId(), v.getModel(), getSpeedSafe(v));
+        }
+    }
+
+    private static void sortByEfficiencyCLI() {
+        System.out.println("---- Fleet Sorted by Fuel Efficiency ----");
+        for (Vehicle v : manager.getFleetSortedByEfficiency()) {
+            System.out.printf("%s | %s | %.2f km/l%n", v.getId(), v.getModel(), v.calculateFuelEfficiency());
+        }
+    }
+
+    private static double getSpeedSafe(Vehicle v) {
+        try {
+            return (double) v.getClass().getMethod("getMaxSpeed").invoke(v);
+        } catch (Exception e) {
+            return 0.0;
         }
     }
 }
